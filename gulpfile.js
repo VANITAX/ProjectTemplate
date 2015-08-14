@@ -209,7 +209,7 @@ gulp.task('browser-sync', ['build'], function() {
     logPrefix: "Server",
     browser: "google chrome",
     open: "external",
-    // host: "192.168.1.1",
+    host: "192.168.1.1",
     reloadDelay: 1000,
     index: "index.html",
     // https: true,
