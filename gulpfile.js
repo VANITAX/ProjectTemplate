@@ -1,12 +1,16 @@
 var gulp           = require('gulp');
-
 var rename         = require('gulp-rename');
 var concat         = require('gulp-concat');
-var uglify         = require('gulp-uglify');
+var jshint         = require('gulp-jshint')
+var sourcemaps     = require('gulp-sourcemaps');
+// var postcss        = require('gulp-postcss');
+var pngquant       = require('imagemin-pngquant');
 var changed        = require('gulp-changed');
+var autoprefixer   = require('gulp-autoprefixer')
 var jade           = require('gulp-jade');
 var compass        = require('gulp-compass');
 var sass           = require('gulp-ruby-sass');
+// var autoprefixer   = require('autoprefixer-core');
 var gutil          = require('gulp-util');
 var html2jade      = require('gulp-html2jade');
 var del            = require('del');
@@ -17,68 +21,94 @@ var plumber        = require('gulp-plumber');
 var gulpLiveScript = require('gulp-livescript');
 var notify         = require("gulp-notify");
 var jshint         = require('gulp-jshint');
+var uglify         = require('gulp-uglify');
+var imagemin       = require('gulp-imagemin');
+var minifyCss      = require('gulp-minify-css')
 var reload         = browserSync.reload;
 
+//  編譯來源位置
 var sources = {
   livescripts: './src/livescripts/**/*.ls',
-  js: './src/js/**/*.js',
+  js: './src/javascript/**/*.js',
   sass: './src/sass/**/*.sass',
-  jade: './src/**/*.jade'
+  jade: './src/*.jade',
+  lib: './src/assets/'
 };
 
+//  編譯完成位置
 var destinations = {
-  js: './build/js/app',
+  js: './build/javascripts/app',
   css: './build/stylesheets',
-  html: './build/'
+  html: './build/',
+  root: './build/'
 };
+
 
 // Our code After compiled livescripts to js
-var ourCodeAfterCompile = [
-  './build/js/app/**/*.js',
-];
+// var ourCodeAfterCompile = [
+//   './build/js/app/**/*.js',
+// ];
 
 // The AngularJS sources in using
-var angularSrc = [
-  './build/js/dist/lib/angular.min.js',
-];
+// var angularSrc = [
+//   './build/js/dist/lib/angular.min.js',
+// ];
 
 // Others JS library
-var vendorSrc = [
-];
+// var vendorSrc = [
+// ];
 
+// 清除目標
 // if string have the prefix '!', that file or folder won't be deleted.
 var cleanArray = [
   './build/*'
 ];
 
 // Error handeler
+// 通知中心錯誤彈出設定
 var onError = function (err) {
-    console.log('//////////////////////////////');
-    notify.onError({
-                    // title:    "Gulp",
-                    // subtitle: "Error: <%= error.message %>",
-                    // message:  "Error: <%= error.message %>",
-                    // sound:    "Pop"
-                })(err);
+    console.log('=-=-=-=-=-=-=-=-=-=ERROR_MESSAGE-=-=-=-=-=-=-=-=-=-=-');
+    console.log('/////////////////////////////////////////////////////');
+    notify.onError({})(err);
     gutil.log(gutil.colors.yellow(err.message));
-    console.log('//////////////////////////////');
+    console.log('///////////////////ERROR_MESSAGE/////////////////////');
     //gutil.beep();
     browserSync.notify(err.message, 5000);
     return notify(err.message);
 };
 
-
-
+// 處理 build 初始化的功能
 // Clean all of compiled files
 gulp.task('clean', function() {
   del.sync(cleanArray);
 });
 
+// 處理js
 gulp.task('js', function() {
   return gulp.src(sources.js)
-    .pipe( plumber({
-      errorHandler: onError
-    })).pipe(
+  // 檢查js語法
+    .pipe(jshint())
+    // 語法出錯就會跳訊息
+    .pipe(notify(function (file) {
+      if (file.jshint.success) {
+        return false;
+      }
+ 
+      var errors = file.jshint.results.map(function (data) {
+        if (data.error) {
+          return "(" + data.error.line + ':' + data.error.character + ') ' + data.error.reason;
+        }
+      }).join("\n");
+          return file.relative + " (" + file.jshint.results.length + " errors)\n" + errors;
+    }))
+    .pipe(sourcemaps.init())
+    // 將app資料夾中的js合併為一隻
+    .pipe(concat('app.min.js'))
+    .pipe(sourcemaps.write())
+    // 壓縮js
+    .pipe(uglify())
+    // 輸出
+    .pipe(
       gulp.dest(destinations.js)
     );
 });
@@ -86,9 +116,6 @@ gulp.task('js', function() {
 //livescript Compile
 gulp.task('ls', function() {
   return gulp.src(sources.livescripts)
-    .pipe( plumber({
-      errorHandler: onError
-    }))
     .pipe(
       changed(
           destinations.js, {extension: '.js'}
@@ -105,30 +132,39 @@ gulp.task('ls', function() {
 // Compass Compile
 gulp.task('compass', function() {
     var stream =  gulp.src(sources.sass)
-    // .pipe(plumber({
-    //   errorHandler: onError
-    // }))
     .pipe(compass({
       // config_file: 'config.rb',
       css: 'build/stylesheets',
       sass: 'src/sass',
       sourcemap: true,
-      // comments: false,
-      require: ['susy']
-    })).on('error' , function (err) {
-    console.log('//////////////////////////////');
-    gutil.log(gutil.colors.yellow(err.message));
-    notify.onError({
-                    // title:    "Error: <%= error.message %>",
-                    // subtitle: "Error: <%= error.message %>",
-                    // message:  "Error: <%= error.message %>",
-                    sound:    "Pop"
-                })(err);
-    console.log('//////////////////////////////');
-    //gutil.beep();
-    browserSync.notify(err.message, 5000);
-    stream.end();
+      comments: false,
+      // debug: true,
+      time: true,
+      // import_path: true,
+      require: ['susy', 'breakpoint']
+    }))
+    .on('error' , function (err) {
+      console.log('/////////////////////////////////////////////////////');
+      console.log('=-=-=-=-=-=-=-=-=-=ERROR_MESSAGE-=-=-=-=-=-=-=-=-=-=-');
+      // gutil.log(gutil.colors.yellow(err.message));
+      notify.onError({
+        title:    "something wrong?",
+        // subtitle: "Error: <%= error.message %>",
+        message:  "Error: <%= error.message %>",
+        sound:    "Frog"
+      })(err);
+      console.log('=-=-=-=-=-=-=-=-=-=ERROR_MESSAGE-=-=-=-=-=-=-=-=-=-=-');
+      console.log('/////////////////////////////////////////////////////');
+      // gutil.beep();
+      browserSync.notify(err.message, 1000);
+      stream.end();
     })
+    // .pipe(postcss([ autoprefixer({ browsers: ['last 2 versions', 'safari 5', 'ie 8', 'ie 9', 'opera 12.1', 'ios 6', 'android 4'] }) ]))
+    .pipe(autoprefixer('last 2 version', 'safari 5', 'ie 8', 'ie 9', 'opera 12.1', 'ios 6', 'android 4'))
+    .pipe(rename({
+      suffix: '.min'
+    }))
+    .pipe(minifyCss())
     .pipe(gulp.dest(destinations.css))
     .pipe(reload({stream:true}));
     return stream;
@@ -148,7 +184,7 @@ gulp.task('jade', function() {
     }))
     .pipe(gulp.dest(destinations.html));
 
-  var index = gulp.src('./src/index.jade')
+  var index = gulp.src(sources.jade)
     .pipe(plumber({
       errorHandler: onError
     }))
@@ -156,59 +192,27 @@ gulp.task('jade', function() {
       pretty: true
     }))
     .pipe(gulp.dest(destinations.html));
-  return merge(all, index);
+  // return merge(all, index);
+  return merge(index);
 });
-
-// Compile HTML to Jade
-// gulp.task('html2jade', function() {
-//   return gulp.src(['./**/*.html'])
-//     .pipe(html2jade({nspace: 2, donotencode: true}))
-//     .pipe(gulp.dest('./src'));
-// });
 
 // Get the library code to build directory
 gulp.task('get-lib', function() {
-  return gulp.src('./src/assets/**', {base: './src/assets/'})
-    .pipe(gulp.dest('./build'));
+  return gulp.src(sources.lib + '**', {base: sources.lib})
+    .pipe(gulp.dest(destinations.root));
 });
 
-// Concatenate & Minify JS
-// gulp.task('scripts', ['compile'], function() {
-//   var ourCode =  gulp.src(ourCodeAfterCompile)
-//     .pipe(concat('app.js'))
-//     .pipe(rename({suffix: '.min'}))
-//     .pipe(uglify({compress: true}))
-//     .pipe(gulp.dest('./_public/js/dist/'));
-
-  // var coverflow = gulp.src('./build/js/coverflow/*.js')
-  //   .pipe(concat('coverflow.js'))
-  //   .pipe(rename({suffix: '.min'}))
-  //   .pipe(uglify({compress: true}))
-  //   .pipe(gulp.dest(destinations.js + '/dist/'))
-  //   .pipe(gulp.dest('./_public/js/dist/'));
-
-  // var vendor = gulp.src(vendorSrc)
-  //   .pipe(concat('vendor.js'))
-  //   .pipe(rename({suffix: '.min'}))
-  //   .pipe(uglify({compress: true}))
-  //   .pipe(gulp.dest(destinations.js + '/dist/'))
-  //   .pipe(gulp.dest('./_public/js/dist/'));
-
-  // var angularJs = gulp.src(angularSrc)
-  //   .pipe(rename(function(path) {
-  //     path.basename = path.basename.replace(/.min/g, '') + '.min';
-  //   }))
-  //   .pipe(uglify({mangle: false, compress: true}))
-  //   .pipe(gulp.dest(destinations.js + '/dist/lib/'))
-  //   .pipe(gulp.dest('./_public/js/dist/lib/'));
-
-//   return merge(ourCode, coverflow, vendor, angularJs);
-// });
 
 // Run Server
 gulp.task('browser-sync', ['build'], function() {
   browserSync({
-    open: true,
+    logPrefix: "Server",
+    browser: "google chrome",
+    open: "external",
+    // host: "192.168.1.1",
+    reloadDelay: 1000,
+    index: "index.html",
+    // https: true,
     server: {
       baseDir: './build/'
     },
@@ -239,57 +243,45 @@ gulp.task('bs-reload', function () {
 });
 
 
-// Copy necessary files to _public
-gulp.task('copy', ['build'], function() {
-  // var buildDir = [
-  //   './src/assets/**',
-  //   './build/images/**',
-  //   './build/load/**',
-  //   './build/stylesheets/**',
-  //   './build/views/**/*.html',
-  //   './build/notavailable.html',
-  //   './build/js/**/*.js'
-  // ];
-  var files = gulp.src('./build/**', {base: './build/'})
-    .pipe(gulp.dest('./_public/'));
-
-  // var mini = gulp.src('./build/index.html')
-  //   .pipe(htmlreplace({
-  //     js: 'js/dist/app.min.js'
-  //   }))
-  //   .pipe(gulp.dest('./_public'));
-
-  // return merge(files, mini);
-  return files;
+gulp.task('compressImg', function () {
+  return gulp.src('src/assets/images/*')
+      .pipe(imagemin({
+          progressive: true,
+          svgoPlugins: [{removeViewBox: false}],
+          use: [pngquant()]
+      }))
+      .pipe(gulp.dest('build/images'));
 });
 
-// Compile to HTML, CSS, JavaScript
-gulp.task('compile', ['clean', 'get-lib', 'ls', 'compass', 'jade', 'js']);
 
+
+// Copy necessary files to _public
+// gulp.task('copy', ['build'], function() {
+//   // var buildDir = [
+//   //   './src/assets/**',
+//   //   './build/images/**',
+//   //   './build/load/**',
+//   //   './build/stylesheets/**',
+//   //   './build/views/**/*.html',
+//   //   './build/notavailable.html',
+//   //   './build/js/**/*.js'
+//   // ];
+//   var files = gulp.src('./build/**', {base: './build/'})
+//     .pipe(gulp.dest('./_public/'));
+
+//   // var mini = gulp.src('./build/index.html')
+//   //   .pipe(htmlreplace({
+//   //     js: 'js/dist/app.min.js'
+//   //   }))
+//   //   .pipe(gulp.dest('./_public'));
+
+//   // return merge(files, mini);
+//   return files;
+// });
+
+// Compile to HTML, CSS, JavaScript
+gulp.task('compile', ['clean', 'get-lib', 'ls', 'compass', 'jade', 'js' ,'compressImg']);
 gulp.task('build',['compile']);
 gulp.task('default',['build', 'livereload']);
-gulp.task('publish',['build', 'copy']);
+// gulp.task('publish',['build', 'copy']);
 
-
-
-// CoffeeScript Compile
-// gulp.task('coffee', function() {
-//     return gulp.src(sources.coffee)
-//     .pipe(plumber({
-//       errorHandler: onError
-//     }))
-//     .pipe(changed(destinations.js, {extension: '.js'}))
-//     .pipe(coffee({
-//       bare: true
-//     }))
-    // .on('error', function(err){
-    //   console.log('//////////////////////////////');
-    //   gutil.log(gutil.colors.yellow(err.message));
-    //   console.log('//////////////////////////////');
-    //   gutil.beep();
-    //   browserSync.notify(err.message, 5000);
-    //   stream.end();
-    // })
-    // .pipe(gulp.dest(destinations.js));
-    // .pipe(reload({stream: true}))
-// });
