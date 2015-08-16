@@ -3,6 +3,7 @@ var rename         = require('gulp-rename');
 var concat         = require('gulp-concat');
 var jshint         = require('gulp-jshint')
 var sourcemaps     = require('gulp-sourcemaps');
+var stylish        = require('jshint-stylish');
 // var postcss        = require('gulp-postcss');
 var pngquant       = require('imagemin-pngquant');
 var changed        = require('gulp-changed');
@@ -77,6 +78,18 @@ var onError = function (err) {
     return notify(err.message);
 };
 
+var JSError = function (file) {
+  if (file.jshint.success) {
+    return false;
+  }
+  var errors = file.jshint.results.map(function (data) {
+    if (data.error) {
+      return "(" + data.error.line + ':' + data.error.character + ') ' + data.error.reason;
+    }
+  }).join("\n");
+    return file.relative + " (" + file.jshint.results.length + " errors)\n" + errors;
+}
+
 // 處理 build 初始化的功能
 // Clean all of compiled files
 gulp.task('clean', function() {
@@ -89,28 +102,23 @@ gulp.task('js', function() {
   // 檢查js語法
     .pipe(jshint())
     // 語法出錯就會跳訊息
-    .pipe(notify(function (file) {
-      if (file.jshint.success) {
-        return false;
-      }
- 
-      var errors = file.jshint.results.map(function (data) {
-        if (data.error) {
-          return "(" + data.error.line + ':' + data.error.character + ') ' + data.error.reason;
-        }
-      }).join("\n");
-          return file.relative + " (" + file.jshint.results.length + " errors)\n" + errors;
-    }))
-    .pipe(sourcemaps.init())
+    .pipe(jshint.reporter(stylish))
+    .pipe(notify(JSError))
+    // .pipe(jshint.reporter('fail'))
     // 將app資料夾中的js合併為一隻
+    .pipe(sourcemaps.init())
     .pipe(concat('app.min.js'))
     .pipe(sourcemaps.write())
     // 壓縮js
     .pipe(uglify())
+    .on('error', function(err){
+      //do whatever here
+      // console.log("You have something wrong? Check your js")
+      browserSync.notify(err.message, 5000);
+      this.end();
+    })
     // 輸出
-    .pipe(
-      gulp.dest(destinations.js)
-    );
+    .pipe(gulp.dest(destinations.js))
 });
 
 //livescript Compile
@@ -124,9 +132,7 @@ gulp.task('ls', function() {
     .pipe(
       gulpLiveScript({bare: true})
       )
-    .pipe(
-      gulp.dest(destinations.js)
-      );
+    .pipe(gulp.dest(destinations.js));
 });
 
 // Compass Compile
@@ -139,6 +145,7 @@ gulp.task('compass', function() {
       sourcemap: true,
       comments: false,
       // debug: true,
+      task: "watch",
       time: true,
       // import_path: true,
       require: ['susy', 'breakpoint']
@@ -156,7 +163,7 @@ gulp.task('compass', function() {
       console.log('=-=-=-=-=-=-=-=-=-=ERROR_MESSAGE-=-=-=-=-=-=-=-=-=-=-');
       console.log('/////////////////////////////////////////////////////');
       // gutil.beep();
-      browserSync.notify(err.message, 1000);
+      browserSync.notify(err.message, 5000);
       stream.end();
     })
     // .pipe(postcss([ autoprefixer({ browsers: ['last 2 versions', 'safari 5', 'ie 8', 'ie 9', 'opera 12.1', 'ios 6', 'android 4'] }) ]))
@@ -217,6 +224,7 @@ gulp.task('browser-sync', ['build'], function() {
       baseDir: './build/'
     },
     port: 8080,
+    // logLevel: "debug",
     watchOptions: {debounceDelay: 1000}
   })
 });
@@ -224,7 +232,10 @@ gulp.task('browser-sync', ['build'], function() {
 // Watch files
 gulp.task('watch', function() {
   gulp.watch(sources.livescripts, ['ls']);
-  gulp.watch(sources.js, ['js']);
+  gulp.watch(sources.js, ['js'])
+  // .on("change", function(file) {
+  //   browserSync.reload()
+  // });
   gulp.watch(sources.sass, ['compass']);
   gulp.watch(sources.jade, ['jade']);
 });
