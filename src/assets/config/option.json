@@ -1,0 +1,18 @@
+{
+  "test_DomainName": "localhost",
+  "check_metaTag": true,
+  "metaCheckIgnore": false,
+  "check_GA": false,
+  "SettingGroup": [
+    {
+      "Base_URL": "我家",
+      "Facebook_AppID": "0000000000000",
+      "Google_Analytics_tracking_code": "UA-53687703-3"
+    },
+    {
+      "Base_URL": "客戶家",
+      "Facebook_AppID": "1111111111111",
+      "Google_Analytics_tracking_code": "UA-53687703-2"
+    }
+  ]
+}

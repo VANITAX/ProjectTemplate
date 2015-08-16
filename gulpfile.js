@@ -4,24 +4,18 @@ var concat         = require('gulp-concat');
 var jshint         = require('gulp-jshint')
 var sourcemaps     = require('gulp-sourcemaps');
 var stylish        = require('jshint-stylish');
-// var postcss        = require('gulp-postcss');
 var pngquant       = require('imagemin-pngquant');
 var changed        = require('gulp-changed');
 var autoprefixer   = require('gulp-autoprefixer')
 var jade           = require('gulp-jade');
 var compass        = require('gulp-compass');
 var sass           = require('gulp-ruby-sass');
-// var autoprefixer   = require('autoprefixer-core');
 var gutil          = require('gulp-util');
-var html2jade      = require('gulp-html2jade');
 var del            = require('del');
 var browserSync    = require('browser-sync');
 var merge          = require('merge-stream');
-var htmlreplace    = require('gulp-html-replace');
 var plumber        = require('gulp-plumber');
-var gulpLiveScript = require('gulp-livescript');
 var notify         = require("gulp-notify");
-var jshint         = require('gulp-jshint');
 var uglify         = require('gulp-uglify');
 var imagemin       = require('gulp-imagemin');
 var minifyCss      = require('gulp-minify-css')
@@ -29,7 +23,7 @@ var reload         = browserSync.reload;
 
 //  編譯來源位置
 var sources = {
-  livescripts: './src/livescripts/**/*.ls',
+  config: './src/config/*.js',
   js: './src/javascript/**/*.js',
   sass: './src/sass/**/*.sass',
   jade: './src/*.jade',
@@ -38,26 +32,45 @@ var sources = {
 
 //  編譯完成位置
 var destinations = {
+  config: './build/config/',
   js: './build/javascripts/app',
   css: './build/stylesheets',
   html: './build/',
   root: './build/'
 };
 
+var syncOPT = {
+  logPrefix: "Server",
+  browser: "google chrome",
+  // open: "external",
+  open: false,
+  reloadDelay: 1000,
+  index: "index.html",
+  // https: true,
+  // host: "192.168.1.1",
+  // logLevel: "debug",
+  server: {
+    baseDir: './build/'
+  },
+  port: 8080,
+  watchOptions: {debounceDelay: 1000}
+}
 
-// Our code After compiled livescripts to js
-// var ourCodeAfterCompile = [
-//   './build/js/app/**/*.js',
-// ];
 
-// The AngularJS sources in using
-// var angularSrc = [
-//   './build/js/dist/lib/angular.min.js',
-// ];
+var compassOPT = {
+  // config_file: 'config.rb',
+  css: 'build/stylesheets',
+  sass: 'src/sass',
+  sourcemap: true,
+  comments: false,
+  // debug: true,
+  task: "watch",
+  time: true,
+  // import_path: true,
+  require: ['susy', 'breakpoint']
+}
 
-// Others JS library
-// var vendorSrc = [
-// ];
+
 
 // 清除目標
 // if string have the prefix '!', that file or folder won't be deleted.
@@ -121,35 +134,11 @@ gulp.task('js', function() {
     .pipe(gulp.dest(destinations.js))
 });
 
-//livescript Compile
-gulp.task('ls', function() {
-  return gulp.src(sources.livescripts)
-    .pipe(
-      changed(
-          destinations.js, {extension: '.js'}
-        )
-      )
-    .pipe(
-      gulpLiveScript({bare: true})
-      )
-    .pipe(gulp.dest(destinations.js));
-});
 
 // Compass Compile
 gulp.task('compass', function() {
     var stream =  gulp.src(sources.sass)
-    .pipe(compass({
-      // config_file: 'config.rb',
-      css: 'build/stylesheets',
-      sass: 'src/sass',
-      sourcemap: true,
-      comments: false,
-      // debug: true,
-      task: "watch",
-      time: true,
-      // import_path: true,
-      require: ['susy', 'breakpoint']
-    }))
+    .pipe(compass(compassOPT))
     .on('error' , function (err) {
       console.log('/////////////////////////////////////////////////////');
       console.log('=-=-=-=-=-=-=-=-=-=ERROR_MESSAGE-=-=-=-=-=-=-=-=-=-=-');
@@ -212,33 +201,30 @@ gulp.task('get-lib', function() {
 
 // Run Server
 gulp.task('browser-sync', ['build'], function() {
-  browserSync({
-    logPrefix: "Server",
-    browser: "google chrome",
-    open: "external",
-    // host: "192.168.1.1",
-    reloadDelay: 1000,
-    index: "index.html",
-    // https: true,
-    server: {
-      baseDir: './build/'
-    },
-    port: 8080,
-    // logLevel: "debug",
-    watchOptions: {debounceDelay: 1000}
-  })
+  browserSync(syncOPT)
 });
+
+gulp.task('config', function() {
+  return gulp.src(sources.config)
+  .pipe(jshint())
+  .pipe(jshint.reporter(stylish))
+  .pipe(notify(JSError))
+  .pipe(uglify())
+  .on('error', function(err){
+    browserSync.notify(err.message, 5000);
+    this.end();
+  })
+  .pipe(gulp.dest(destinations.config));
+})
 
 // Watch files
 gulp.task('watch', function() {
-  gulp.watch(sources.livescripts, ['ls']);
+  gulp.watch(sources.config, ['config'])
   gulp.watch(sources.js, ['js'])
-  // .on("change", function(file) {
-  //   browserSync.reload()
-  // });
   gulp.watch(sources.sass, ['compass']);
   gulp.watch(sources.jade, ['jade']);
 });
+
 
 // Livereload
 var watchfolder = ['./build/**/*.html','./build/**/*.js' ]
@@ -266,33 +252,8 @@ gulp.task('compressImg', function () {
 
 
 
-// Copy necessary files to _public
-// gulp.task('copy', ['build'], function() {
-//   // var buildDir = [
-//   //   './src/assets/**',
-//   //   './build/images/**',
-//   //   './build/load/**',
-//   //   './build/stylesheets/**',
-//   //   './build/views/**/*.html',
-//   //   './build/notavailable.html',
-//   //   './build/js/**/*.js'
-//   // ];
-//   var files = gulp.src('./build/**', {base: './build/'})
-//     .pipe(gulp.dest('./_public/'));
-
-//   // var mini = gulp.src('./build/index.html')
-//   //   .pipe(htmlreplace({
-//   //     js: 'js/dist/app.min.js'
-//   //   }))
-//   //   .pipe(gulp.dest('./_public'));
-
-//   // return merge(files, mini);
-//   return files;
-// });
-
 // Compile to HTML, CSS, JavaScript
-gulp.task('compile', ['clean', 'get-lib', 'ls', 'compass', 'jade', 'js' ,'compressImg']);
+gulp.task('compile', ['clean', 'config' , 'get-lib', 'compass', 'jade', 'js' ,'compressImg']);
 gulp.task('build',['compile']);
 gulp.task('default',['build', 'livereload']);
-// gulp.task('publish',['build', 'copy']);
 
