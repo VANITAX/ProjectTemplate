@@ -1,3 +1,6 @@
+// 該驗證程式為開發版 請至 master 下載目前最新確認版
+
+
 if(!window.jQuery){console.log("請確認是否引入jQuery lib!!!!!");}else{
   var DataSetting = function()
   {
