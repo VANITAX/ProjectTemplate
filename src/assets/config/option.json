@@ -5,8 +5,8 @@
   "check_GA": false,
   "SettingGroup": [
     {
-      "Base_URL": "我家",
-      "Facebook_AppID": "0000000000000",
+      "Base_URL": "http://localhost:8080/",
+      "Facebook_AppID": "1683975591833341",
       "Google_Analytics_tracking_code": "UA-53687703-3"
     },
     {

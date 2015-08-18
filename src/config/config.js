@@ -44,7 +44,7 @@ if(!window.jQuery){console.log("請確認是否引入jQuery lib!!!!!");}else{
   };
 
   DataSetting.prototype.checkMetaTag = function(){
-    console.log("%c開始檢查meta標籤設定......","color: #ff0000; font-size: 18px;");
+    console.log("開始檢查meta標籤設定......");
     var metaTag = document.getElementsByTagName('meta');
     var checkFlag = 0;
     for(var i = 0 ; i<metaTag.length; i++){
@@ -72,11 +72,11 @@ if(!window.jQuery){console.log("請確認是否引入jQuery lib!!!!!");}else{
       }
     }
     if(checkFlag != metaTag.length){
-      console.log("%c目前尚有：" +(metaTag.length - checkFlag)+ " 組 meta標籤未設定", "color: #8665FF; font-size: 18px;");
-      console.log("%c請重新確認所有meta設定，以及tab icon設定", "color: #FFA500; font-size: 18px;");
+      console.log("目前尚有：" +(metaTag.length - checkFlag)+ " 組 meta標籤未設定");
+      console.log("請重新確認所有meta設定，以及tab icon設定");
       return false;
     }else{
-      console.log("%c已確認所有meta設定", "color: #FFA500; font-size: 18px;");
+      console.log("已確認所有meta設定");
       return true;
     }
   };

@@ -19,7 +19,7 @@ var notify         = require("gulp-notify");
 var uglify         = require('gulp-uglify');
 var imagemin       = require('gulp-imagemin');
 var minifyCss      = require('gulp-minify-css')
-var reload         = browserSync.reload;
+// var reload         = browserSync.reload;
 
 //  編譯來源位置
 var sources = {
