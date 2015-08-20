@@ -5,7 +5,9 @@
 文件還沒寫～～
 
 ## ChangeLog:
-
+### 2015.08.20 ------<br />
+   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;新增css-sprite 壓縮功能<br />
+   
 ### 2015.08.14 ------<br />
    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;新增JS文件壓縮功能<br />
    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;新增JS文件合併功能<br />
