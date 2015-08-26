@@ -4,27 +4,36 @@ var concat         = require('gulp-concat');
 var jshint         = require('gulp-jshint')
 var sourcemaps     = require('gulp-sourcemaps');
 var stylish        = require('jshint-stylish');
+// var postcss        = require('gulp-postcss');
+var gulpif         = require('gulp-if');
+var sprite         = require('css-sprite').stream;
 var pngquant       = require('imagemin-pngquant');
 var changed        = require('gulp-changed');
 var autoprefixer   = require('gulp-autoprefixer')
 var jade           = require('gulp-jade');
 var compass        = require('gulp-compass');
 var sass           = require('gulp-ruby-sass');
+// var autoprefixer   = require('autoprefixer-core');
 var gutil          = require('gulp-util');
+var html2jade      = require('gulp-html2jade');
 var del            = require('del');
 var browserSync    = require('browser-sync');
 var merge          = require('merge-stream');
+var htmlreplace    = require('gulp-html-replace');
 var plumber        = require('gulp-plumber');
+var gulpLiveScript = require('gulp-livescript');
 var notify         = require("gulp-notify");
+var jshint         = require('gulp-jshint');
 var uglify         = require('gulp-uglify');
 var imagemin       = require('gulp-imagemin');
 var minifyCss      = require('gulp-minify-css')
-// var reload         = browserSync.reload;
-
+var reload         = browserSync.reload;
 //  編譯來源位置
 var sources = {
   config: './src/config/*.js',
   js: './src/javascript/**/*.js',
+  icon: './src/asset/icon/',
+  sprite: './src/assets/stylesheets/icon/',
   sass: './src/sass/**/*.sass',
   jade: './src/*.jade',
   lib: './src/assets/'
@@ -35,9 +44,18 @@ var destinations = {
   config: './build/config/',
   js: './build/javascripts/app',
   css: './build/stylesheets',
+  sprite: './build/images/icon/',
   html: './build/',
   root: './build/'
 };
+
+var libPath = [
+    sources.lib + '**/vendor/**' ,
+    sources.lib + 'images/**' ,
+    sources.lib + 'fonts/**' ,
+    sources.lib + 'config/**' ,
+    sources.lib + 'javascripts/lib/*.js' ,
+  ];
 
 var syncOPT = {
   logPrefix: "Server",
@@ -56,26 +74,24 @@ var syncOPT = {
   watchOptions: {debounceDelay: 1000}
 }
 
-
 var compassOPT = {
   // config_file: 'config.rb',
   css: 'build/stylesheets',
   sass: 'src/sass',
-  sourcemap: true,
+  sourcemap: false,
   comments: false,
   // debug: true,
+  logging: false,
   task: "watch",
   time: true,
-  // import_path: true,
+  // import_path: false,
   require: ['susy', 'breakpoint']
 }
-
-
 
 // 清除目標
 // if string have the prefix '!', that file or folder won't be deleted.
 var cleanArray = [
-  './build/*'
+  './build/*' 
 ];
 
 // Error handeler
@@ -103,10 +119,13 @@ var JSError = function (file) {
     return file.relative + " (" + file.jshint.results.length + " errors)\n" + errors;
 }
 
+
+
 // 處理 build 初始化的功能
 // Clean all of compiled files
 gulp.task('clean', function() {
-  del.sync(cleanArray);
+  del.sync(cleanArray)
+  // del.sync()
 });
 
 // 處理js
@@ -135,6 +154,27 @@ gulp.task('js', function() {
 });
 
 
+gulp.task('sprites', function () {
+  return gulp.src(sources.icon + '*.png')
+    .pipe(sprite({
+      name: 'icon-sprites',
+      style: '_icon-sprites.scss',
+      cssPath: '../images/icon/',
+      processor: 'scss'
+    }))
+    .pipe(gulpif('*.png', gulp.dest(destinations.sprite), gulp.dest(sources.sprite)))
+});
+
+// gulp.task('base64', function () {
+//   return gulp.src('./src/img/*.png')
+//     .pipe(sprite({
+//       base64: true,
+//       style: '_base64.scss',
+//       processor: 'scss'
+//     }))
+//     .pipe(gulp.dest('./dist/scss/'));
+// });
+
 // Compass Compile
 gulp.task('compass', function() {
     var stream =  gulp.src(sources.sass)
@@ -157,9 +197,9 @@ gulp.task('compass', function() {
     })
     // .pipe(postcss([ autoprefixer({ browsers: ['last 2 versions', 'safari 5', 'ie 8', 'ie 9', 'opera 12.1', 'ios 6', 'android 4'] }) ]))
     .pipe(autoprefixer('last 2 version', 'safari 5', 'ie 8', 'ie 9', 'opera 12.1', 'ios 6', 'android 4'))
-    .pipe(rename({
-      suffix: '.min'
-    }))
+    // .pipe(rename({
+    //   suffix: '-min',
+    // }))
     .pipe(minifyCss())
     .pipe(gulp.dest(destinations.css))
     .pipe(reload({stream:true}));
@@ -192,16 +232,27 @@ gulp.task('jade', function() {
   return merge(index);
 });
 
+
 // Get the library code to build directory
 gulp.task('get-lib', function() {
-  return gulp.src(sources.lib + '**', {base: sources.lib})
+  return gulp.src(libPath, {base: sources.lib})
     .pipe(gulp.dest(destinations.root));
 });
-
 
 // Run Server
 gulp.task('browser-sync', ['build'], function() {
   browserSync(syncOPT)
+});
+
+// Watch files
+gulp.task('watch', function() {
+  gulp.watch(sources.config, ['config'])
+  gulp.watch(sources.js, ['js'])
+  // .on("change", function(file) {
+  //   browserSync.reload()
+  // });
+  gulp.watch(sources.sass, ['compass']);
+  gulp.watch(sources.jade, ['jade']);
 });
 
 gulp.task('config', function() {
@@ -216,15 +267,6 @@ gulp.task('config', function() {
   })
   .pipe(gulp.dest(destinations.config));
 })
-
-// Watch files
-gulp.task('watch', function() {
-  gulp.watch(sources.config, ['config'])
-  gulp.watch(sources.js, ['js'])
-  gulp.watch(sources.sass, ['compass']);
-  gulp.watch(sources.jade, ['jade']);
-});
-
 
 // Livereload
 var watchfolder = ['./build/**/*.html','./build/**/*.js' ]
@@ -251,9 +293,8 @@ gulp.task('compressImg', function () {
 });
 
 
-
 // Compile to HTML, CSS, JavaScript
-gulp.task('compile', ['clean', 'config' , 'get-lib', 'compass', 'jade', 'js' ,'compressImg']);
+gulp.task('compile', ['clean', 'get-lib', 'config', 'sprites' ,'compass' , 'jade', 'js' ,'compressImg']);
 gulp.task('build',['compile']);
 gulp.task('default',['build', 'livereload']);
 

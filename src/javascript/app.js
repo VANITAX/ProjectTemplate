@@ -8,3 +8,4 @@ function init ()
   // console.log(dataOption.optGet())
   console.log("app.js init");
 }
+$(init);

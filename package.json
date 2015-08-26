@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "description": "ProJectName",
   "main": "gulpfile.js",
+  "scripts": {
+    "watch": "gulp"
+  },
   "devDependencies": {
     "autoprefixer-core": "^5.2.1",
     "browser-sync": "^2.8.2",
