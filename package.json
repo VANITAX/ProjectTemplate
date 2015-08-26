@@ -9,6 +9,7 @@
   "devDependencies": {
     "autoprefixer-core": "^5.2.1",
     "browser-sync": "^2.8.2",
+    "css-sprite": "^0.9.9",
     "del": "^0.1.2",
     "gulp": "^3.9.0",
     "gulp-autoprefixer": "^2.3.1",
@@ -17,6 +18,7 @@
     "gulp-concat": "^2.6.0",
     "gulp-html-replace": "^1.1.0",
     "gulp-html2jade": "^0.1.0",
+    "gulp-if": "^1.2.5",
     "gulp-imagemin": "^2.3.0",
     "gulp-jade": "^1.1.0",
     "gulp-jshint": "^1.11.2",
